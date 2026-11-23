@@ -2,6 +2,12 @@
 
 Ayudante para League of Legends: ligero, rápido y limpio. Solo usa APIs oficiales, sin anuncios ni telemetría.
 
+## Descargar (lo más fácil)
+Descarga **Kite.exe** de la última versión en [Releases](https://github.com/TeddyDevDev/Kite/releases/latest), ponlo en cualquier carpeta y ábrelo con doble clic. No hace falta instalar nada más.
+
+> Windows puede avisar con "Windows protegió su PC" porque el .exe no está firmado: pulsa **Más información → Ejecutar de todas formas**.
+
+## Compilar desde el código
 ## Requisitos (Windows)
 1. Rust: https://rustup.rs (instalador `rustup-init.exe`, opciones por defecto).
 2. Las Build Tools de Visual Studio con "Desarrollo para el escritorio con C++" (rustup te lo ofrece al instalar).

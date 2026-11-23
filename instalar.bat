@@ -12,8 +12,29 @@ echo.
 rem Cerrar Kite si esta abierto (si no, Windows no deja reemplazar el .exe)
 taskkill /im Kite.exe /f >nul 2>&1
 
+rem Rust es necesario para compilar desde el codigo
+set "CARGO=cargo"
+where cargo >nul 2>&1
+if errorlevel 1 (
+    if exist "%USERPROFILE%\.cargo\bin\cargo.exe" (
+        set "CARGO=%USERPROFILE%\.cargo\bin\cargo.exe"
+    ) else (
+        echo  No tienes Rust instalado, que es lo que compila Kite desde el codigo.
+        echo.
+        echo  OPCION FACIL: descarga Kite.exe ya compilado desde:
+        echo     https://github.com/TeddyDevDev/Kite/releases/latest
+        echo  Ponlo en cualquier carpeta y abrelo con doble clic.
+        echo.
+        echo  OPCION AVANZADA: instala Rust desde https://rustup.rs y vuelve a ejecutar este archivo.
+        echo.
+        start "" "https://github.com/TeddyDevDev/Kite/releases/latest"
+        pause
+        exit /b 1
+    )
+)
+
 echo  [1/3] Compilando la version final (la primera vez tarda unos minutos)...
-cargo build --release
+"%CARGO%" build --release
 if errorlevel 1 (
     echo.
     echo  ERROR: no se pudo compilar. Copia el mensaje de arriba y pasaselo a Claude.
