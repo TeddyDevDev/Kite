@@ -1,10 +1,12 @@
 # Compila Kite.exe en Windows y lo publica en Releases.
-# Se lanza al subir una etiqueta vX.Y.Z (o a mano desde la pestaña Actions).
+# Se lanza al subir cambios a main: si la versión de Cargo.toml aún no tiene
+# release, se crea (con su etiqueta vX.Y.Z). También se puede lanzar a mano.
 name: Release
 
 on:
   push:
-    tags: ["v*"]
+    branches: [main]
+    paths: ["Cargo.toml", "Cargo.lock", "build.rs", "src/**", "ui/**", "assets/**"]
   workflow_dispatch:
 
 permissions:
@@ -15,6 +17,18 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Versión
+        id: version
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $v = (Select-String -Path Cargo.toml -Pattern '^version = "(.+)"').Matches[0].Groups[1].Value
+          "tag=v$v" >> $env:GITHUB_OUTPUT
+          gh release view "v$v" *> $null
+          if ($LASTEXITCODE -eq 0) { "exists=true" >> $env:GITHUB_OUTPUT } else { "exists=false" >> $env:GITHUB_OUTPUT }
+          $global:LASTEXITCODE = 0
 
       - uses: dtolnay/rust-toolchain@stable
 
@@ -28,14 +42,16 @@ jobs:
         run: Copy-Item target/release/kite.exe Kite.exe
 
       - name: Publicar en Releases
-        if: startsWith(github.ref, 'refs/tags/')
+        if: steps.version.outputs.exists == 'false'
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: Kite ${{ steps.version.outputs.tag }}
+          target_commitish: ${{ github.sha }}
           files: Kite.exe
           generate_release_notes: true
 
-      - name: Guardar como artefacto (ejecuciones manuales)
-        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+      - name: Guardar como artefacto
         uses: actions/upload-artifact@v4
         with:
           name: Kite
