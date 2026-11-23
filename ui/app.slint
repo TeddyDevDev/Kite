@@ -1,0 +1,676 @@
+// Kite — interfaz. Oscura, limpia y con jerarquía clara:
+// cabecera con estado → héroe del campeón (arte + rol) → runas → build → ajustes.
+
+global Theme {
+    out property <color> bg: #0b0d12;
+    out property <color> card: #14171f;
+    out property <color> card-hover: #1b1f2a;
+    out property <color> border: #222634;
+    out property <color> text: #eef0f5;
+    out property <color> muted: #9aa0b3;
+    out property <color> faint: #5d6377;
+    out property <color> accent: #4f8cff;
+    out property <color> accent-soft: #4f8cff26;
+    out property <color> ok: #3ddc84;
+    out property <color> bad: #ff7a7a;
+    out property <string> font: "Segoe UI";
+}
+
+export struct ItemIcon {
+    icon: image,
+    name: string,
+}
+
+export struct CoreRow {
+    items: [ItemIcon],
+    label: string,
+}
+
+export struct RunesView {
+    tab: string,
+    source: string,
+    keystone: ItemIcon,
+    primary-style: ItemIcon,
+    primary: [ItemIcon],
+    secondary-style: ItemIcon,
+    secondary: [ItemIcon],
+    shards: [ItemIcon],
+    spells: [ItemIcon],
+}
+
+// Marca de Kite: monograma K (el brazo superior en azul apunta hacia delante)
+component KiteMark inherits Rectangle {
+    in property <length> size: 22px;
+    width: size;
+    height: size;
+    Path {
+        width: parent.width;
+        height: parent.height;
+        viewbox-width: 100;
+        viewbox-height: 100;
+        fill: Theme.text;
+        commands: "M22 14 L35 14 L35 86 L22 86 Z M39 50 L54 50 L87 86 L72 86 Z";
+    }
+    Path {
+        width: parent.width;
+        height: parent.height;
+        viewbox-width: 100;
+        viewbox-height: 100;
+        fill: Theme.accent;
+        commands: "M39 50 L72 14 L87 14 L54 50 Z";
+    }
+}
+
+// Icono de objeto / runa; al pasar el ratón muestra el nombre (en inglés)
+component ItemSlot inherits Rectangle {
+    in property <ItemIcon> item;
+    in property <length> size: 32px;
+    in property <bool> round: false;
+    in property <bool> bare: false; // sin fondo ni borde (iconos de runas)
+    width: size;
+    height: size;
+    z: area.has-hover ? 10 : 0;
+    Rectangle {
+        clip: true;
+        border-radius: round ? self.width / 2 : 7px;
+        background: bare ? transparent : Theme.border;
+        border-width: bare ? 0px : 1px;
+        border-color: area.has-hover ? Theme.accent : #ffffff14;
+        animate border-color { duration: 120ms; }
+        Image {
+            source: item.icon;
+            width: parent.width;
+            height: parent.height;
+            image-fit: cover;
+        }
+    }
+    area := TouchArea { }
+    if area.has-hover && item.name != "": Rectangle {
+        y: -32px;
+        x: (parent.width - self.width) / 2;
+        height: 26px;
+        width: tip.preferred-width + 16px;
+        background: #05060a;
+        border-radius: 6px;
+        border-width: 1px;
+        border-color: Theme.border;
+        drop-shadow-blur: 12px;
+        drop-shadow-color: #00000099;
+        tip := Text {
+            text: item.name;
+            color: Theme.text;
+            font-size: 12px;
+            font-weight: 600;
+        }
+    }
+}
+
+component Pill inherits Rectangle {
+    in property <string> text;
+    in property <bool> active;
+    in property <bool> on-image: false;
+    callback clicked;
+    height: 28px;
+    horizontal-stretch: 1;
+    border-radius: 8px;
+    background: active ? Theme.accent
+        : pill-area.has-hover ? (on-image ? #ffffff30 : Theme.card-hover)
+        : (on-image ? #0b0d1299 : #ffffff0d);
+    border-width: 1px;
+    border-color: active ? Theme.accent : #ffffff12;
+    animate background { duration: 140ms; easing: ease-out; }
+    Text {
+        text: root.text;
+        color: active ? white : Theme.text.with-alpha(0.75);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+    }
+    pill-area := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+component PrimaryButton inherits Rectangle {
+    in property <string> text;
+    callback clicked;
+    height: 32px;
+    width: label.preferred-width + 28px;
+    border-radius: 8px;
+    background: area.pressed ? Theme.accent.darker(0.25) : area.has-hover ? Theme.accent.brighter(0.1) : Theme.accent;
+    animate background { duration: 100ms; }
+    drop-shadow-blur: area.has-hover ? 14px : 0px;
+    drop-shadow-color: #4f8cff55;
+    animate drop-shadow-blur { duration: 150ms; }
+    label := Text {
+        text: root.text;
+        color: white;
+        font-size: 12px;
+        font-weight: 700;
+    }
+    area := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+component Toggle inherits Rectangle {
+    in-out property <bool> checked;
+    callback toggled(bool);
+    width: 38px;
+    height: 22px;
+    border-radius: 11px;
+    background: checked ? Theme.accent : Theme.border;
+    animate background { duration: 140ms; }
+    Rectangle {
+        width: 16px;
+        height: 16px;
+        border-radius: 8px;
+        y: 3px;
+        x: checked ? parent.width - self.width - 3px : 3px;
+        background: white;
+        animate x { duration: 160ms; easing: ease-out; }
+    }
+    TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.checked = !root.checked;
+            root.toggled(root.checked);
+        }
+    }
+}
+
+component SectionLabel inherits Text {
+    color: Theme.faint;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+}
+
+// Tarjeta que aparece con un fundido suave
+component Card inherits Rectangle {
+    in property <string> label;
+    in property <string> badge;
+    property <bool> shown: false;
+    init => { shown = true; }
+    opacity: shown ? 1 : 0;
+    animate opacity { duration: 260ms; easing: ease-out; }
+    vertical-stretch: 0;
+    background: Theme.card;
+    border-radius: 14px;
+    border-width: 1px;
+    border-color: Theme.border;
+    VerticalLayout {
+        padding: 16px;
+        spacing: 12px;
+        HorizontalLayout {
+            spacing: 8px;
+            SectionLabel { text: label; vertical-alignment: center; }
+            Rectangle { horizontal-stretch: 1; }
+            if badge != "": Text {
+                text: badge;
+                color: Theme.muted;
+                font-size: 11px;
+                vertical-alignment: center;
+            }
+        }
+        @children
+    }
+}
+
+// Hueco que late mientras carga (en vez de un texto "Cargando…")
+component Skeleton inherits Rectangle {
+    border-radius: 7px;
+    background: #ffffff;
+    opacity: 0.06 + 0.05 * (1 + Math.sin(animation-tick() / 2.5ms * 1deg));
+}
+
+export component AppWindow inherits Window {
+    title: "Kite";
+    icon: app-icon;
+    preferred-width: 400px;
+    preferred-height: 780px;
+    min-width: 340px;
+    min-height: 480px;
+    background: Theme.bg;
+    default-font-family: Theme.font;
+
+    in property <image> app-icon;
+    in property <bool> connected: false;
+    in property <string> phase: "Esperando a League of Legends…";
+    in property <string> champion: "";
+    in property <string> position: "";
+    in property <image> splash;
+    in property <image> champ-icon;
+    in property <string> role: ""; // línea de la build mostrada (formato del cliente)
+    in property <[RunesView]> rune-options: [];
+    in-out property <int> selected-rune: 0;
+    property <RunesView> runes: rune-options[selected-rune];
+    property <bool> has-runes: rune-options.length > 0;
+    in property <string> notice: "";
+    in property <bool> notice-error: false;
+    in property <bool> has-build: false;
+    in property <bool> loading: false;
+    in property <bool> refreshing: false; // enseñando la build guardada mientras baja la nueva
+    in property <string> sync-text: "";   // precarga en segundo plano ("" = nada)
+    in property <float> sync-progress: 0;
+    in property <string> update-text: "";   // aviso de actualización ("" = nada)
+    in property <bool> update-busy: false;  // compilando la versión nueva
+    in property <bool> update-error: false;
+    callback apply-update();
+    in property <string> build-info: "";
+    in property <string> build-hint: "";
+    in property <[CoreRow]> cores: [];
+    in property <[ItemIcon]> boots: [];
+    in property <[ItemIcon]> situational: [];
+    in property <[ItemIcon]> start-items: [];
+    in property <string> skills: "";
+    in-out property <bool> auto-import: true;
+
+    callback import-runes(int);
+    callback select-role(string);
+    callback auto-import-toggled(bool);
+
+    VerticalLayout {
+        padding: 18px;
+        spacing: 14px;
+
+        // ── Cabecera: marca + estado
+        HorizontalLayout {
+            spacing: 10px;
+            VerticalLayout { alignment: center; KiteMark { size: 22px; } }
+            Text {
+                text: "KITE";
+                color: Theme.text;
+                font-size: 20px;
+                font-weight: 800;
+                letter-spacing: 5px;
+                vertical-alignment: center;
+            }
+            Rectangle { horizontal-stretch: 1; }
+            VerticalLayout {
+                alignment: center;
+                Rectangle {
+                    height: 26px;
+                    width: status-row.preferred-width + 22px;
+                    border-radius: 13px;
+                    background: #ffffff0a;
+                    border-width: 1px;
+                    border-color: Theme.border;
+                    status-row := HorizontalLayout {
+                        x: 11px;
+                        spacing: 7px;
+                        VerticalLayout {
+                            alignment: center;
+                            Rectangle {
+                                width: 8px;
+                                height: 8px;
+                                border-radius: 4px;
+                                background: connected ? Theme.ok : Theme.faint;
+                                animate background { duration: 300ms; }
+                            }
+                        }
+                        Text {
+                            text: connected ? phase : "Desconectado";
+                            color: Theme.muted;
+                            font-size: 11px;
+                            font-weight: 600;
+                            vertical-alignment: center;
+                        }
+                    }
+                }
+            }
+        }
+
+        // ── Actualización de Kite
+        if update-text != "": Rectangle {
+            vertical-stretch: 0;
+            height: 44px;
+            border-radius: 10px;
+            background: update-error ? #ff7a7a1a : Theme.accent-soft;
+            border-width: 1px;
+            border-color: update-error ? #ff7a7a55 : #4f8cff55;
+            HorizontalLayout {
+                padding-left: 12px;
+                padding-right: 8px;
+                spacing: 10px;
+                if update-busy: VerticalLayout {
+                    alignment: center;
+                    Rectangle {
+                        width: 8px;
+                        height: 8px;
+                        border-radius: 4px;
+                        background: Theme.accent;
+                        opacity: 0.35 + 0.65 * (1 + Math.sin(animation-tick() / 2ms * 1deg)) / 2;
+                    }
+                }
+                Text {
+                    text: update-text;
+                    color: update-error ? Theme.bad : Theme.text;
+                    font-size: 12px;
+                    font-weight: 600;
+                    vertical-alignment: center;
+                    horizontal-stretch: 1;
+                    wrap: word-wrap;
+                }
+                if !update-busy && !update-error: VerticalLayout {
+                    alignment: center;
+                    PrimaryButton {
+                        text: "Actualizar";
+                        clicked => { root.apply-update(); }
+                    }
+                }
+            }
+        }
+
+        // ── Descarga de datos en segundo plano
+        if sync-text != "": VerticalLayout {
+            spacing: 6px;
+            HorizontalLayout {
+                spacing: 8px;
+                VerticalLayout {
+                    alignment: center;
+                    Rectangle {
+                        width: 7px;
+                        height: 7px;
+                        border-radius: 3.5px;
+                        background: Theme.accent;
+                        opacity: 0.45 + 0.4 * (1 + Math.sin(animation-tick() / 3ms * 1deg)) / 2;
+                    }
+                }
+                Text {
+                    text: sync-text;
+                    color: Theme.muted;
+                    font-size: 11px;
+                    vertical-alignment: center;
+                }
+            }
+            Rectangle {
+                height: 3px;
+                border-radius: 1.5px;
+                background: Theme.border;
+                Rectangle {
+                    x: 0;
+                    width: parent.width * clamp(sync-progress, 0, 1);
+                    height: parent.height;
+                    border-radius: 1.5px;
+                    background: Theme.accent;
+                    animate width { duration: 400ms; easing: ease-out; }
+                }
+            }
+        }
+
+        // ── Sin campeón: estado vacío
+        if champion == "": Rectangle {
+            height: 150px;
+            vertical-stretch: 0;
+            border-radius: 14px;
+            border-width: 1px;
+            border-color: Theme.border;
+            background: Theme.card;
+            VerticalLayout {
+                alignment: center;
+                spacing: 10px;
+                HorizontalLayout { alignment: center; KiteMark { size: 34px; } }
+                Text {
+                    text: connected ? "Elige campeón y aquí aparecerán tus runas y tu build" : "Abre League of Legends para empezar";
+                    color: Theme.muted;
+                    font-size: 13px;
+                    horizontal-alignment: center;
+                    wrap: word-wrap;
+                }
+            }
+        }
+
+        // ── Héroe del campeón: arte, nombre y selector de rol
+        if champion != "": Rectangle {
+            height: 150px;
+            vertical-stretch: 0;
+            border-radius: 14px;
+            clip: true;
+            background: Theme.card;
+            border-width: 1px;
+            border-color: Theme.border;
+            Image {
+                width: parent.width;
+                height: parent.height;
+                source: splash;
+                image-fit: cover;
+            }
+            Rectangle {
+                width: parent.width;
+                height: parent.height;
+                background: @linear-gradient(180deg, #0b0d1233 0%, #0b0d12aa 55%, #0b0d12f2 100%);
+            }
+            VerticalLayout {
+                padding: 14px;
+                spacing: 10px;
+                alignment: end;
+                HorizontalLayout {
+                    spacing: 10px;
+                    Rectangle {
+                        width: 40px;
+                        height: 40px;
+                        border-radius: 10px;
+                        clip: true;
+                        border-width: 1px;
+                        border-color: #ffffff30;
+                        Image { width: parent.width; height: parent.height; source: champ-icon; image-fit: cover; }
+                    }
+                    VerticalLayout {
+                        alignment: center;
+                        Text {
+                            text: champion;
+                            color: white;
+                            font-size: 24px;
+                            font-weight: 800;
+                        }
+                    }
+                }
+                HorizontalLayout {
+                    spacing: 5px;
+                    Pill { on-image: true; text: "TOP"; active: role == "top"; clicked => { root.select-role("top"); } }
+                    Pill { on-image: true; text: "JG"; active: role == "jungle"; clicked => { root.select-role("jungle"); } }
+                    Pill { on-image: true; text: "MID"; active: role == "middle"; clicked => { root.select-role("middle"); } }
+                    Pill { on-image: true; text: "ADC"; active: role == "bottom"; clicked => { root.select-role("bottom"); } }
+                    Pill { on-image: true; text: "SUP"; active: role == "utility"; clicked => { root.select-role("utility"); } }
+                }
+            }
+        }
+
+        // ── Runas
+        if has-runes: Card {
+            label: "RUNAS";
+            badge: runes.source;
+            if rune-options.length > 1: HorizontalLayout {
+                spacing: 5px;
+                for opt[i] in rune-options: Pill {
+                    text: opt.tab;
+                    active: i == root.selected-rune;
+                    clicked => { root.selected-rune = i; }
+                }
+            }
+            HorizontalLayout {
+                spacing: 12px;
+                VerticalLayout {
+                    spacing: 10px;
+                    horizontal-stretch: 1;
+                    HorizontalLayout {
+                        spacing: 7px;
+                        alignment: start;
+                        VerticalLayout { alignment: center; ItemSlot { item: runes.primary-style; size: 22px; bare: true; } }
+                        ItemSlot { item: runes.keystone; size: 46px; round: true; bare: true; }
+                        for r in runes.primary: VerticalLayout {
+                            alignment: center;
+                            ItemSlot { item: r; size: 30px; round: true; }
+                        }
+                    }
+                    HorizontalLayout {
+                        spacing: 7px;
+                        alignment: start;
+                        VerticalLayout { alignment: center; ItemSlot { item: runes.secondary-style; size: 22px; bare: true; } }
+                        for r in runes.secondary: ItemSlot { item: r; size: 30px; round: true; }
+                        Rectangle { width: 6px; }
+                        for r in runes.shards: VerticalLayout {
+                            alignment: center;
+                            ItemSlot { item: r; size: 22px; round: true; }
+                        }
+                    }
+                }
+                VerticalLayout {
+                    alignment: center;
+                    spacing: 10px;
+                    HorizontalLayout {
+                        spacing: 5px;
+                        alignment: center;
+                        for sp in runes.spells: ItemSlot { item: sp; size: 30px; }
+                    }
+                    PrimaryButton {
+                        text: "Importar";
+                        clicked => { root.import-runes(root.selected-rune); }
+                    }
+                }
+            }
+            if notice != "": Text {
+                text: notice;
+                color: notice-error ? Theme.bad : Theme.ok;
+                font-size: 12px;
+                wrap: word-wrap;
+            }
+        }
+
+        // ── Build
+        if has-build: Card {
+            label: "BUILD";
+            badge: refreshing ? "Actualizando…" : build-info;
+            for core in cores: HorizontalLayout {
+                spacing: 6px;
+                for it in core.items: ItemSlot { item: it; size: 38px; }
+                Rectangle { horizontal-stretch: 1; }
+                VerticalLayout {
+                    alignment: center;
+                    Rectangle {
+                        height: 22px;
+                        width: wr.preferred-width + 14px;
+                        border-radius: 6px;
+                        background: Theme.accent-soft;
+                        wr := Text {
+                            text: core.label;
+                            color: Theme.accent.brighter(0.4);
+                            font-size: 11px;
+                            font-weight: 700;
+                        }
+                    }
+                }
+            }
+            HorizontalLayout {
+                spacing: 18px;
+                if boots.length > 0: VerticalLayout {
+                    spacing: 6px;
+                    SectionLabel { text: "BOTAS"; }
+                    HorizontalLayout { for it in boots: ItemSlot { item: it; } }
+                }
+                if start-items.length > 0: VerticalLayout {
+                    spacing: 6px;
+                    SectionLabel { text: "INICIO"; }
+                    HorizontalLayout {
+                        spacing: 4px;
+                        for it in start-items: ItemSlot { item: it; size: 26px; }
+                    }
+                }
+                if skills != "": VerticalLayout {
+                    spacing: 6px;
+                    SectionLabel { text: "HABILIDADES"; }
+                    Text {
+                        text: skills;
+                        color: Theme.text;
+                        font-size: 14px;
+                        font-weight: 700;
+                        height: 32px;
+                        vertical-alignment: center;
+                    }
+                }
+                Rectangle { horizontal-stretch: 1; }
+            }
+            if situational.length > 0: VerticalLayout {
+                spacing: 6px;
+                SectionLabel { text: "SITUACIONALES"; }
+                HorizontalLayout {
+                    spacing: 6px;
+                    alignment: start;
+                    for it in situational: ItemSlot { item: it; }
+                }
+            }
+        }
+
+        // ── Cargando: huecos que laten con la forma de la build
+        if !has-build && loading: Card {
+            label: "BUILD";
+            badge: "Cargando de OP.GG…";
+            HorizontalLayout {
+                spacing: 6px;
+                alignment: start;
+                Skeleton { width: 38px; height: 38px; }
+                Skeleton { width: 38px; height: 38px; }
+                Skeleton { width: 38px; height: 38px; }
+            }
+            HorizontalLayout {
+                spacing: 6px;
+                alignment: start;
+                Skeleton { width: 32px; height: 32px; }
+                Rectangle { width: 12px; }
+                Skeleton { width: 26px; height: 26px; }
+                Skeleton { width: 26px; height: 26px; }
+                Rectangle { width: 12px; }
+                Skeleton { width: 90px; height: 26px; }
+            }
+            HorizontalLayout {
+                spacing: 6px;
+                alignment: start;
+                for i in 6: Skeleton { width: 32px; height: 32px; }
+            }
+        }
+
+        if !has-build && !loading && build-hint != "": Card {
+            label: "BUILD";
+            Text {
+                text: build-hint;
+                color: Theme.muted;
+                font-size: 12px;
+                wrap: word-wrap;
+            }
+        }
+
+        Rectangle { vertical-stretch: 1; }
+
+        // ── Ajustes
+        Rectangle {
+            height: 1px;
+            background: Theme.border;
+        }
+        HorizontalLayout {
+            spacing: 10px;
+            Text {
+                text: "Importar runas y hechizos al bloquear";
+                color: Theme.muted;
+                font-size: 12px;
+                vertical-alignment: center;
+                horizontal-stretch: 1;
+            }
+            VerticalLayout {
+                alignment: center;
+                Toggle {
+                    checked <=> root.auto-import;
+                    toggled(on) => { root.auto-import-toggled(on); }
+                }
+            }
+        }
+        Text {
+            text: "Kite v0.12";
+            color: Theme.faint;
+            font-size: 10px;
+            horizontal-alignment: center;
+        }
+    }
+}
