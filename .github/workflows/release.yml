@@ -6,7 +6,7 @@ name: Release
 on:
   push:
     branches: [main]
-    paths: ["Cargo.toml", "Cargo.lock", "build.rs", "src/**", "ui/**", "assets/**"]
+    paths: ["Cargo.toml", "Cargo.lock", "build.rs", "src/**", "ui/**", "assets/**", ".github/workflows/release.yml"]
   workflow_dispatch:
 
 permissions:
